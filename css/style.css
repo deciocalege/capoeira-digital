@@ -1,0 +1,368 @@
+:root{
+  /* Paleta extraída da referência (iColorpalette), tons de azul-acinzentado,
+     aplicada aos acentos (cabeçalho, botões, badges, bordas). O fundo da
+     página e dos cartões ficou branco/quase-branco — mais legível e com
+     melhor contraste do que um fundo colorido. */
+  --pena:#f5f7fa;
+  --casca:#e7ecf5;
+  --terra:#767f90;
+  --mato:#5c749c;
+  --mato-esc:#243349;
+  --milho:#8094bc;
+  /* --sangue mantém-se um vermelho (fora da paleta extraída, de propósito):
+     é a única cor "de aviso/negativo" da app (saldo negativo, apagar,
+     mortes) — trocá-la por um tom de azul tiraria a leitura rápida de
+     "isto é negativo" que o vermelho dá universalmente. */
+  --sangue:#a3402f;
+  /* --aviso: âmbar, usado só no semáforo do choco (fase "atenção", entre
+     o calmo e o perigo/terminado) — mesma lógica do --sangue acima: é
+     um sinal funcional, não faz parte da identidade visual da app. */
+  --aviso:#c98a2c;
+  --tinta:#1b222c;
+  --linha:#ccd3e0;
+  --branco:#ffffff;
+  --sombra: 0 4px 14px rgba(20,30,45,.08);
+  --cinza-legenda:#545d6d;
+
+  /* Escala de espaçamento — antes eram valores soltos (6px,7px,8px,9px…)
+     espalhados pelo ficheiro; agora tudo deriva desta escala. */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px; --sp-7:48px;
+
+  /* Escala de raio — cartões e botões usam sempre um destes três valores. */
+  --r-sm:6px; --r-md:10px; --r-lg:14px;
+
+  /* Escala tipográfica — Georgia/serif de sistema como voz da marca (efeito
+     "caderno de registo"), Courier New/monospace só para números/dados,
+     tudo com fontes de sistema porque a app corre 100% offline. */
+  --text-xs:.72rem; --text-sm:.85rem; --text-base:1rem;
+  --text-lg:1.15rem; --text-xl:1.5rem; --text-2xl:1.7rem;
+
+  /* Alvo de toque mínimo recomendado (Apple HIG / Material) — a app é usada
+     de pé, no quintal, muitas vezes ao sol e com uma só mão. */
+  --toque-min:44px;
+
+  /* Altura do cabeçalho fixo — usada para "empurrar" o conteúdo da página
+     para baixo, já que o cabeçalho passa a ficar sempre visível no topo. */
+  --altura-cabecalho:72px;
+}
+*{box-sizing:border-box;}
+/* Rede de segurança geral: garante que nada (uma palavra comprida sem
+   espaços, um valor de texto grande, etc.) consegue alargar a página
+   para lá da largura do ecrã em telemóveis — se acontecer, o conteúdo
+   quebra linha ou é cortado, em vez de "estourar" o layout. */
+html,body{overflow-x:hidden;max-width:100vw;}
+img,svg{max-width:100%;}
+body{margin:0;background:var(--pena);color:var(--tinta);font-family:Georgia,'Iowan Old Style','Palatino Linotype',serif;padding-top:var(--altura-cabecalho);overflow-wrap:break-word;}
+.brand-font{font-family:Georgia,'Iowan Old Style','Palatino Linotype',serif;}
+.num-font{font-family:'Courier New',ui-monospace,monospace;}
+
+/* Cabeçalho estilo "painel/dashboard" (inspirado num app de gestão de
+   aviário): barra sólida verde-escura, ícone + nome à esquerda, FIXO no
+   topo do ecrã — fica sempre visível ao fazer scroll. O logo/nome
+   "Capoeira" é clicável e leva ao menu — por isso já não há um link
+   "← Menu" separado a fazer o mesmo trabalho. */
+header.app-header{
+  background:var(--mato-esc);
+  color:var(--pena);
+  padding:var(--sp-3) var(--sp-4);
+  position:fixed;top:0;left:0;right:0;height:var(--altura-cabecalho);
+  z-index:200;
+  box-shadow:0 2px 8px rgba(0,0,0,.15);
+  display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);
+}
+.app-header-top{display:flex;align-items:center;gap:var(--sp-3);min-width:0;}
+.app-header-link{text-decoration:none;color:inherit;}
+
+/* Botão-seta do menu rápido (canto superior direito do cabeçalho) —
+   mostra/esconde a lista de páginas, para saltar directamente para
+   outra secção sem ter de voltar ao menu principal primeiro. */
+.menu-toggle-btn{
+  flex:0 0 auto;background:rgba(255,255,255,.12);border:none;color:var(--pena);
+  font-size:1.15rem;line-height:1;padding:8px 12px;border-radius:8px;
+  cursor:pointer;min-height:var(--toque-min);min-width:var(--toque-min);
+}
+.menu-toggle-btn:active{background:rgba(255,255,255,.24);}
+
+/* Painel do menu rápido — sobrepõe-se ao conteúdo (não empurra nada
+   para baixo), mesma largura do ecrã, logo abaixo do cabeçalho fixo. */
+.quick-nav{
+  position:fixed;top:var(--altura-cabecalho);left:0;right:0;z-index:199;
+  background:var(--branco);border-bottom:1px solid var(--linha);
+  box-shadow:0 8px 16px rgba(20,30,45,.14);
+  display:flex;flex-direction:column;padding:var(--sp-2) 0;
+  max-height:70vh;overflow-y:auto;
+}
+.quick-nav[hidden]{display:none;}
+.quick-nav a{
+  padding:var(--sp-3) var(--sp-4);text-decoration:none;color:var(--tinta);
+  font-size:var(--text-sm);border-bottom:1px solid var(--linha);
+}
+.quick-nav a:last-child{border-bottom:none;}
+.quick-nav a:active{background:var(--casca);}
+.quick-nav a.active{color:var(--mato-esc);font-weight:bold;background:var(--casca);}
+.app-header-link:active{opacity:.85;}
+.app-icon{font-size:1.8rem;line-height:1;}
+header.app-header h1{margin:0;font-size:var(--text-xl);letter-spacing:.3px;}
+header.app-header p{margin:2px 0 0;opacity:.8;font-size:var(--text-xs);}
+
+/* Cartões-link do menu inicial (index.html) — mesmo visual dos .card
+   normais, mas clicáveis por inteiro e com um pequeno efeito ao tocar. */
+.card-link{
+  display:block;text-decoration:none;color:inherit;
+  transition:transform .12s ease, box-shadow .12s ease;
+}
+.card-link:active{transform:scale(.98);}
+.card-link .value{font-size:var(--text-lg);}
+
+/* Faixa de estatísticas ao vivo — sempre visível, em qualquer separador */
+.stats-strip{
+  max-width:980px;margin:var(--sp-3) auto 0;padding:0 var(--sp-4);
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:var(--sp-2);
+}
+.stats-strip .mini{
+  background:var(--branco);border:1px solid var(--linha);border-radius:9px;
+  padding:var(--sp-2) var(--sp-3);box-shadow:var(--sombra);text-align:center;
+  transition:transform .18s ease, box-shadow .18s ease;
+}
+.stats-strip .mini .n{font-family:'Courier New',ui-monospace,monospace;font-size:var(--text-lg);color:var(--mato-esc);font-weight:bold;}
+.stats-strip .mini .l{font-size:.65rem;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza-legenda);margin-top:2px;}
+.stats-strip .mini.pulse{animation:pulse .6s ease;}
+.stats-strip .mini.mortas .n{color:var(--sangue);}
+@keyframes pulse{
+  0%{transform:scale(1);box-shadow:var(--sombra);}
+  35%{transform:scale(1.06);box-shadow:0 6px 20px rgba(128,148,188,.35);}
+  100%{transform:scale(1);box-shadow:var(--sombra);}
+}
+@media(prefers-reduced-motion:reduce){
+  .stats-strip .mini.pulse{animation:none;}
+  .tab{animation:none;}
+}
+
+main{max-width:980px;margin:0 auto;padding:var(--sp-4) var(--sp-4) 60px;}
+.tab{display:none;animation:fade .25s ease;}
+.tab.active{display:block;}
+@keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+
+h2.section-title{
+  font-size:var(--text-lg);color:var(--mato-esc);
+  border-bottom:2px solid var(--linha);
+  padding-bottom:6px;margin:var(--sp-6) 0 var(--sp-3);
+  display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);
+}
+h2.section-title:first-child{margin-top:0;}
+.live-clock{font-size:.68rem;font-family:'Courier New',ui-monospace,monospace;color:#7c8494;font-weight:normal;border:none;letter-spacing:.03em;}
+
+/* ============ GRÁFICOS (barras e donut, SVG puro) ============ */
+.chart-svg{width:100%;height:auto;display:block;}
+.chart-svg rect, .chart-svg circle{transition:opacity .15s ease;}
+.chart-svg rect:hover, .chart-svg circle:hover{opacity:.8;}
+.chart-label{font-size:8px;fill:var(--cinza-legenda);font-family:Georgia,serif;}
+.chart-donut-wrap{display:flex;align-items:center;gap:var(--sp-4);flex-wrap:wrap;}
+.chart-donut{width:150px;height:150px;flex:0 0 auto;}
+.chart-legenda{display:flex;flex-direction:column;gap:6px;font-size:var(--text-xs);}
+.chart-legenda-item{display:flex;align-items:center;gap:6px;color:var(--tinta);}
+.chart-legenda-item i{width:10px;height:10px;border-radius:3px;display:inline-block;flex:0 0 auto;}
+.chart-card{
+  background:var(--branco);border:1px solid var(--linha);border-radius:var(--r-md);
+  padding:var(--sp-4);box-shadow:var(--sombra);margin-bottom:var(--sp-3);
+}
+.chart-card h3{margin:0 0 var(--sp-3);font-size:var(--text-sm);color:var(--mato-esc);}
+.charts-split{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:var(--sp-3);}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--sp-3);}
+.card{
+  background:var(--branco);border:1px solid var(--linha);border-radius:var(--r-md);
+  padding:var(--sp-3) var(--sp-4);box-shadow:var(--sombra);
+}
+.card .label{font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.06em;color:var(--cinza-legenda);}
+.card .value{font-size:var(--text-xl);font-family:'Courier New',ui-monospace,monospace;color:var(--mato-esc);margin-top:4px;}
+.card .value.neg{color:var(--sangue);}
+.card .sub{font-size:var(--text-xs);color:#69707d;margin-top:2px;}
+
+/* ============ DASHBOARD PRINCIPAL (Início) ============
+   Cartões maiores/em destaque para as 4 métricas que respondem a
+   "como está a exploração agora", com seta de tendência colorida em
+   vez de um número solto sem contexto. */
+.dashboard-principal .dash-card{padding:var(--sp-4);}
+.dashboard-principal .dash-card .label{font-size:var(--text-sm);}
+.dashboard-principal .dash-card .value{font-size:1.6rem;}
+.dashboard-principal .dash-card .sub{font-size:var(--text-sm);margin-top:6px;font-weight:bold;}
+.trend-up{color:var(--mato-esc);}
+.trend-down{color:var(--sangue);}
+
+/* ============ LISTA DE ALERTAS (tipada por cor) ============ */
+.lista-alertas{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;}
+.lista-alertas li{
+  padding:10px 14px;border-radius:var(--r-sm);font-size:var(--text-sm);
+  border-left:4px solid var(--linha);background:var(--casca);
+}
+.lista-alertas li.alerta-perigo{border-left-color:var(--sangue);background:#f7dedb;}
+.lista-alertas li.alerta-aviso{border-left-color:var(--aviso);background:#faedd6;}
+.lista-alertas li.alerta-info{border-left-color:var(--milho);background:#e9edf6;}
+.lista-alertas li.alerta-bom{border-left-color:var(--mato-esc);background:#e3ecf7;}
+
+.compartimento{
+  background:var(--branco);border:1px solid var(--linha);border-radius:var(--r-md);
+  padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-3);box-shadow:var(--sombra);
+}
+.compartimento h3{margin:0 0 var(--sp-2);font-size:var(--text-base);color:var(--terra);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;}
+.compartimento h3 .badge{
+  background:var(--mato);color:var(--pena);font-size:.7rem;padding:3px 9px;border-radius:20px;font-family:'Courier New',ui-monospace,monospace;
+}
+
+/* Wrapper opcional em torno de <table> — em ecrãs largos não faz nada;
+   serve de rede de segurança para tabelas muito largas que, mesmo com o
+   padrão "cartão empilhado" abaixo, ainda não caibam (ex: telas < 340px). */
+/* Contentor de deslize à volta de CADA tabela: se por algum motivo o
+   modo "cartão empilhado" abaixo não for ativado (ex: o navegador usado
+   para pré-visualizar não reportar corretamente a largura do ecrã), a
+   tabela nunca "rebenta" para fora do cartão — em vez disso, fica
+   contida aqui dentro e desliza-se lateralmente só dentro desta caixa,
+   com a página à volta sempre intacta. */
+.table-scroll{
+  overflow-x:auto;-webkit-overflow-scrolling:touch;
+  max-width:100%;border-radius:var(--r-sm);
+}
+table{min-width:100%;border-collapse:collapse;font-size:var(--text-sm);}
+th{text-align:left;color:var(--cinza-legenda);font-weight:normal;font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.04em;padding:6px 6px;border-bottom:1px solid var(--linha);}
+td{padding:7px 6px;border-bottom:1px dashed var(--linha);}
+tr:last-child td{border-bottom:none;}
+
+/* ---- Tabelas em ecrãs estreitos: de linhas com muitas colunas para
+   "cartões" empilhados, um por registo — o mesmo padrão visual usado em
+   .compartimento, para a app parecer sempre coerente. Cada <td> precisa
+   de um atributo data-label="Nome da coluna" (é isso que aparece à
+   esquerda do valor); tabelas sem essa marcação simplesmente empilham
+   sem rótulo, o que ainda é legível mas menos claro. ---- */
+@media(max-width:640px){
+  table.responsive-stack{border:none;}
+  table.responsive-stack thead{display:none;}
+  table.responsive-stack tr{
+    display:block;background:var(--casca);border:1px solid var(--linha);
+    border-radius:var(--r-sm);padding:var(--sp-2) var(--sp-3);margin-bottom:var(--sp-2);
+  }
+  table.responsive-stack tr:last-child{margin-bottom:0;}
+  table.responsive-stack td{
+    display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px var(--sp-3);
+    padding:6px 0;border-bottom:1px dashed var(--linha);text-align:right;
+    /* Correção do "estouro": texto longo (ex: descrições compridas em
+       Finanças, nomes de espécie longos em Gestão) agora quebra linha
+       dentro da célula, em vez de forçar a célula para fora da largura
+       do cartão — que era a causa das tabelas a saírem dos quadros. */
+    min-width:0;overflow-wrap:anywhere;
+  }
+  table.responsive-stack td:last-child{border-bottom:none;}
+  table.responsive-stack td[data-label]::before{
+    content:attr(data-label);
+    font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.04em;
+    color:var(--cinza-legenda);text-align:left;flex:0 0 auto;
+  }
+  /* Célula de acções (botão apagar/editar): não faz sentido em par label/valor. */
+  table.responsive-stack td.row-actions{justify-content:flex-end;}
+  table.responsive-stack td.row-actions::before{content:'';}
+}
+
+.btn{
+  background:var(--mato);color:var(--pena);border:none;border-radius:var(--r-sm);
+  padding:10px 16px;cursor:pointer;font-size:var(--text-sm);font-family:inherit;
+  min-height:var(--toque-min);
+}
+.btn:hover{background:var(--mato-esc);}
+.btn:focus-visible{outline:2px solid var(--milho);outline-offset:2px;}
+.btn.secondary{background:var(--milho);}
+.btn.danger{background:var(--sangue);}
+.btn.small{padding:8px 12px;font-size:var(--text-xs);min-height:38px;}
+.btn.outline{background:none;border:1px solid var(--mato);color:var(--mato-esc);}
+
+/* Formulários: em ecrã largo ficam lado a lado (flex-wrap); em mobile
+   cada campo passa a ocupar a largura toda — mais fácil de tocar com
+   precisão e de ler ao sol do que uma grelha apertada de 5-6 campos. */
+form.inline{display:flex;flex-wrap:wrap;gap:var(--sp-2) var(--sp-3);align-items:end;margin:var(--sp-2) 0 4px;}
+form.inline label{display:flex;flex-direction:column;font-size:var(--text-xs);color:var(--cinza-legenda);gap:3px;}
+input,select{
+  font-family:inherit;padding:9px 10px;border:1px solid var(--linha);
+  border-radius:var(--r-sm);background:var(--branco);font-size:var(--text-sm);
+  min-height:var(--toque-min);color:var(--tinta);
+}
+input:focus-visible,select:focus-visible{outline:2px solid var(--milho);outline-offset:1px;}
+input[type=number]{width:100px;}
+/* Estado de erro visível — usado depois de uma tentativa de submissão
+   falhada (ver validação em app.js), não só o :invalid nativo do browser
+   (que pode disparar antes de a pessoa sequer começar a preencher). */
+input.campo-invalido,select.campo-invalido{border-color:var(--sangue);background:#fdf1ee;}
+
+@media(max-width:640px){
+  form.inline{flex-direction:column;align-items:stretch;gap:var(--sp-3);}
+  form.inline label{width:100%;}
+  form.inline input,form.inline select{width:100%;}
+  form.inline input[type=number]{width:100%;}
+  form.inline button{width:100%;margin-top:2px;}
+}
+
+.progress-wrap{background:#dbe1ec;border-radius:20px;height:14px;overflow:hidden;margin:6px 0;}
+.progress-bar{height:100%;transition:width .5s ease, background-color .3s ease;background:var(--mato);}
+
+/* ============ SEMÁFORO DO CHOCO (calmo → atenção → iminente/terminado) ============
+   Usa cores distintas do resto da app de propósito — tal como o vermelho
+   de "negativo/perigo", estas são cores funcionais de sinalização, não
+   de identidade visual, por isso não seguem a paleta azul dos botões. */
+.progress-bar-calmo{background:var(--mato);}
+.progress-bar-aviso{background:var(--aviso);}
+.progress-bar-perigo{background:var(--sangue);}
+
+.status-pill{
+  display:inline-block;font-size:var(--text-xs);font-weight:bold;
+  padding:4px 12px;border-radius:20px;margin-bottom:4px;
+}
+
+/* ============ ÍCONES SVG (ver js/icons.js) ============
+   Herdam a cor do texto à volta (stroke:currentColor definido inline no
+   próprio SVG) — por isso um ícone dentro de ".neg" fica vermelho
+   automaticamente, um dentro de um botão fica da cor do botão, etc.,
+   sem precisar de regra CSS extra por contexto. */
+.icon{
+  display:inline-block;vertical-align:-0.18em;flex:0 0 auto;
+}
+.icon-dot{width:.7em;height:.7em;border-radius:50%;display:inline-block;vertical-align:.05em;margin-right:2px;}
+.icon-dot-calmo{background:var(--mato);}
+.icon-dot-aviso{background:var(--aviso);}
+.icon-dot-perigo{background:var(--sangue);}
+.app-icon .icon{width:28px;height:28px;}
+.card .label .icon, .chart-card h3 .icon{margin-right:4px;}
+.status-pill-aviso{background:#faedd6;color:#8a5a10;}
+.status-pill-calmo{background:#e3ecf7;color:var(--mato-esc);}
+.status-pill-perigo{background:#f7dedb;color:var(--sangue);}
+
+.empty{color:#7c8494;font-style:italic;font-size:var(--text-sm);padding:var(--sp-2) 0;}
+.row-actions{text-align:right;}
+.tag{display:inline-block;font-size:.68rem;background:var(--casca);color:var(--terra);padding:2px 7px;border-radius:20px;margin-right:4px;}
+.footnote{font-size:var(--text-xs);color:#69707d;margin-top:6px;}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-4);}
+@media(max-width:640px){.split{grid-template-columns:1fr;} .stats-strip{grid-template-columns:repeat(2,1fr);}}
+.loading-msg{padding:40px;text-align:center;color:#69707d;font-style:italic;}
+.toast{
+  position:fixed;bottom:16px;left:50%;transform:translateX(-50%);
+  background:var(--mato-esc);color:var(--pena);padding:10px 20px;border-radius:var(--r-sm);
+  font-size:var(--text-sm);box-shadow:var(--sombra);opacity:0;pointer-events:none;transition:opacity .3s;z-index:99;
+  max-width:calc(100vw - 32px);text-align:center;
+}
+.toast.show{opacity:1;}
+
+.alert-banner{
+  background:var(--sangue);color:#fff;padding:var(--sp-3) var(--sp-4);border-radius:var(--r-sm);
+  margin:var(--sp-2) 0;font-weight:bold;box-shadow:var(--sombra);display:flex;align-items:center;gap:var(--sp-2);
+}
+.alert-banner.warn{background:var(--aviso);color:#fff;}
+.countdown{
+  display:inline-block;font-family:'Courier New',ui-monospace,monospace;font-size:1.4rem;
+  background:var(--casca);color:var(--terra);padding:2px 10px;border-radius:6px;margin:0 4px;
+}
+.countdown.zero{background:var(--sangue);color:#fff;}
+
+/* ============ RODAPÉ (gerado por JS em todas as páginas — ver renderFooter() em common.js) ============ */
+.app-footer{
+  text-align:center;font-size:var(--text-xs);color:var(--cinza-legenda);
+  padding:var(--sp-5) var(--sp-3) var(--sp-6);margin-top:var(--sp-6);
+  border-top:1px solid var(--linha);
+}
+.app-footer strong{color:var(--mato-esc);}
