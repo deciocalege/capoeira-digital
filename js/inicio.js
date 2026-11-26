@@ -1,10 +1,13 @@
+/* @revisao 2.18.0 — identifica a versão deste ficheiro (ver REVISOES em config.js) */
+(globalThis.__revisao = globalThis.__revisao || {}).inicio = '2.18.0';
 /* ============ PÁGINA: INÍCIO (resumo geral) ============ */
+
+/* Backups aceites: versão 2 (ids numéricos) e 3 (UUID + criadoEm/atualizadoEm/apagado). */
+const VERSAO_BACKUP_MAX = 3;
 
 async function renderInicio(){
   const app = document.getElementById('app');
-  app.innerHTML = `<div class="loading-msg">A carregar…</div>`;
-  app.innerHTML = await viewInicio();
-  attachHandlersInicio();
+  await UI.redesenhar(app, () => viewInicio(), () => { attachHandlersInicio(); });
 }
 
 async function afterMutacao(msg){
@@ -13,18 +16,19 @@ async function afterMutacao(msg){
 }
 
 async function viewInicio(){
-  const [compartimentos, aves, feedStock, consumo, transacoes, incAll, saidasAves, ovosLog] = await Promise.all([
-    DB.getAll('compartimentos'), DB.getAll('aves'), DB.getAll('feedStock'), DB.getAll('consumo'), DB.getAll('transacoes'), DB.getAll('incubacao'), DB.getAll('saidasAves'), DB.getAll('ovosLog')
+  const [compartimentos, aves, feedStock, consumo, transacoes, incAll, saidasAves, ovosLog, planos, saude, revendaProdutos, revendaMovs] = await Promise.all([
+    DB.getAll('compartimentos'), DB.getAll('aves'), DB.getAll('feedStock'), DB.getAll('consumo'), DB.getAll('transacoes'), DB.getAll('incubacao'), DB.getAll('saidasAves'), DB.getAll('ovosLog'), DB.getAll('planosAlimentares'), DB.getAll('saude'), DB.getAll('revenda'), DB.getAll('revendaMov')
   ]);
   const inc = incAll;
   const totalVendidas = Calc.totalVendidas(saidasAves);
   const totalAbatidas = Calc.totalAbatidas(saidasAves);
   const totalMortas = Calc.totalMortas(saidasAves);
   const desp = Calc.totalDespesas(transacoes), rec = Calc.totalReceitas(transacoes);
-  const stockKg = feedStock.reduce((s,i)=>s+Calc.stockAtual(i,consumo),0);
+  const stockKg = Calc.produtosStock(feedStock, consumo).reduce((s,p)=>s+p.restante,0);
   const consumoDiarioEstimado = Calc.consumoDiarioEstimado(consumo);
   const diasRestantes = consumoDiarioEstimado>0 ? Math.floor(stockKg/consumoDiarioEstimado) : '—';
-  const alertas = Calc.alertas(feedStock, consumo, inc, aves, ovosLog);
+  const alertas = Calc.alertas(feedStock, consumo, inc, aves, ovosLog, planos).concat(Calc.alertasFases(aves, planos), Calc.alertasCompra(feedStock, consumo, aves, planos), Calc.alertasSaude(saude), Calc.alertasRetirada(saude), Calc.alertasRevenda(Calc.stockRevenda(revendaProdutos, revendaMovs)));
+  const ind = Calc.indicadoresNegocio({aves, saidasAves, feedStock, consumo, ovosLog, transacoes, incubacao: incAll}, 30);
   let ultimoBackup = null;
   try{ ultimoBackup = localStorage.getItem('capoeira-ultimo-backup'); }catch(e){}
   const diasSemBackup = ultimoBackup ? Util.diasEntre(ultimoBackup, Util.hoje()) : null;
@@ -63,11 +67,13 @@ async function viewInicio(){
       <div class="value">${stockKg.toFixed(0)} kg</div>
       <div class="sub">${diasRestantes==='—' ? 'sem dados de consumo suficientes' : `≈ ${diasRestantes} dia(s) restantes`}</div>
     </div>
+  ${UI.podeFinancas() ? `
     <div class="card dash-card">
       <div class="label">${Icon.svg('carteira')} Finanças</div>
       <div class="value ${financeira.saldoAtual<0?'neg':''}">${financeira.saldoAtual>=0?'+':''}${Util.moeda(financeira.saldoAtual)}</div>
       <div class="sub ${classeFinanceira}">${textoFinanceira}</div>
     </div>
+  ` : ''}
     <div class="card dash-card">
       <div class="label">${Icon.svg('ovo')} Produção</div>
       <div class="value">${producao.total} ovos</div>
@@ -80,6 +86,24 @@ async function viewInicio(){
     ? `<ul class="lista-alertas">${alertas.map(a=>`<li class="alerta-${a.tipo}">${a.texto}</li>`).join('')}</ul>`
     : `<p class="empty">Sem alertas — tudo dentro do esperado.</p>`}
 
+  <h2 class="section-title">Choco em curso</h2>
+  <div id="choco-live">
+  ${UI.renderChocoBloco(inc)}
+  </div>
+
+  <h2 class="section-title">Indicadores (últimos ${ind.dias} dias)</h2>
+  <div class="cards">
+    <div class="card"><div class="label">Mortalidade</div><div class="value">${ind.mortalidadePct==null ? '—' : ind.mortalidadePct.toFixed(1)+'%'}</div><div class="sub">${ind.mortas} morta(s) no total · ${ind.mortas30} nos últimos ${ind.dias} dias</div></div>
+    <div class="card"><div class="label">Ração por ave</div><div class="value">${ind.custoRacaoPorAve==null ? '—' : Util.moeda(ind.custoRacaoPorAve)}</div><div class="sub">${Util.moeda(ind.custoRacao)} gastos em ração</div></div>
+    <div class="card"><div class="label">Ração por ovo</div><div class="value">${ind.custoRacaoPorOvo==null ? '—' : Util.moeda(ind.custoRacaoPorOvo)}</div><div class="sub">${ind.ovos} ovos registados</div></div>
+    <div class="card"><div class="label">Eclosão média</div><div class="value">${ind.eclosaoPct==null ? '—' : ind.eclosaoPct.toFixed(0)+'%'}</div><div class="sub">${ind.nascidos} de ${ind.ovosChocados} ovos · ${ind.chocosConcluidos} choco(s)</div></div>
+  ${UI.podeFinancas() ? `
+    <div class="card"><div class="label">Saldo do período</div><div class="value ${ind.saldoPeriodo<0?'neg':''}">${Util.moeda(ind.saldoPeriodo)}</div><div class="sub">Receitas ${Util.moeda(ind.receitasPeriodo)} − Despesas ${Util.moeda(ind.despesasPeriodo)}</div></div>
+  ` : ''}
+  </div>
+  <p class="footnote">${Icon.svg('aviso')} Estimativas a partir do que está registado na app. A mortalidade usa todas as aves que passaram pelo plantel (actuais + saídas). O custo por ovo divide toda a ração gasta pelos ovos — é só uma referência, porque a ração também alimenta aves que não põem. O saldo do período não é o lucro real.</p>
+
+  ${UI.podeFinancas() ? `
   <h2 class="section-title">Panorama financeiro</h2>
   <div class="charts-split">
     <div class="chart-card">
@@ -95,18 +119,24 @@ async function viewInicio(){
       ${UI.svgDonutChart(despesasCat)}
     </div>
   </div>
+  ` : ''}
 
   <h2 class="section-title">Detalhe</h2>
   <div class="cards">
     <div class="card"><div class="label">Compartimentos</div><div class="value">${compartimentos.length}</div></div>
+  ${UI.podeFinancas() ? `
     <div class="card"><div class="label">Despesas (total)</div><div class="value neg">${Util.moeda(desp)}</div></div>
     <div class="card"><div class="label">Receitas (total)</div><div class="value">${Util.moeda(rec)}</div></div>
+  ` : ''}
     <div class="card"><div class="label">Aves vendidas</div><div class="value">${totalVendidas}</div><div class="sub">total histórico</div></div>
     <div class="card"><div class="label">Aves abatidas</div><div class="value">${totalAbatidas}</div><div class="sub">para consumo próprio</div></div>
     <div class="card"><div class="label">Aves mortas</div><div class="value neg">${totalMortas}</div><div class="sub">registadas em Gestão</div></div>
   </div>
+  ${UI.podeFinancas() ? `
   <p class="footnote">${Icon.svg('aviso')} O valor de "Finanças" é Receitas − Despesas <strong>registadas</strong> na app — não é necessariamente o lucro real do negócio. Não desconta, por exemplo, o impacto financeiro das ${totalMortas} ave(s) morta(s), mão-de-obra própria, ou qualquer custo que ainda não tenhas lançado (água, energia, depreciação de equipamento, etc.).</p>
+  ` : ''}
 
+  ${UI.podeFinancas() ? `
   <h2 class="section-title">Registar gasto extra</h2>
   <p class="footnote">Para manutenção, construção, compra de material ou qualquer outro gasto fora da rotina — sem precisar de ir até Finanças.</p>
   <form id="form-gasto-extra" class="inline">
@@ -121,19 +151,15 @@ async function viewInicio(){
     <label>Data <input type="date" name="data" value="${Util.hoje()}" required></label>
     <button class="btn secondary" type="submit">Registar gasto</button>
   </form>
+  ` : ''}
 
-  <h2 class="section-title">Choco em curso</h2>
-  <div id="choco-live">
-  ${UI.renderChocoBloco(inc)}
-  </div>
-
-  <h2 class="section-title">Cópia de segurança</h2>
+  <details id="det-backup" class="det-backup"><summary><strong>Cópia de segurança</strong> — exportar e importar os dados</summary>
   <p class="footnote">Os dados ficam guardados no banco de dados deste aparelho. Exporta um ficheiro de backup regularmente para não perderes o histórico se desinstalares a app ou trocares de telemóvel.</p>
   <div class="split">
     <div class="compartimento">
       <h3>Exportar</h3>
       <p class="footnote">Guarda um ficheiro .json com todos os dados actuais.</p>
-      <button class="btn" id="btn-export">⬇️ Exportar backup</button>
+      <button class="btn" id="btn-export">${Icon.svg('descarregar')} Exportar backup</button>
     </div>
     <div class="compartimento">
       <h3>Importar</h3>
@@ -141,6 +167,7 @@ async function viewInicio(){
       <label>Ficheiro <input type="file" id="input-import" accept="application/json"></label>
     </div>
   </div>
+  </details>
   `;
 }
 
@@ -171,15 +198,15 @@ function attachHandlersInicio(){
     if(!confirm('⚠️ Isto vai APAGAR e SUBSTITUIR todos os dados actuais pelos do ficheiro importado.\n\nPor segurança, antes de importar vamos descarregar automaticamente uma cópia dos dados actuais (um segundo ficheiro .json), para poderes recuperá-los caso isto seja um engano.\n\nContinuar?')){ inputImport.value=''; return; }
     try{
       const texto = await file.text();
-      const dados = JSON.parse(texto);
-      const storesEsperados = ['compartimentos','aves','feedStock','consumo','transacoes','ovosLog','saidasAves','misturas'];
+      let dados = JSON.parse(texto);
+      const storesEsperados = ['compartimentos','aves','feedStock','consumo','transacoes','ovosLog','saidasAves','misturas','planosAlimentares','saude','pesagens','vendas','revenda','revendaMov'];
       const temAlgumStoreValido = storesEsperados.some(s=>Array.isArray(dados[s])) || (dados.incubacao && typeof dados.incubacao==='object');
       if(!temAlgumStoreValido){
         Util.toast('⚠️ Este ficheiro não parece ser um backup válido da Capoeira Digital — nada foi alterado');
         inputImport.value = '';
         return;
       }
-      if(Number(dados.versaoBackup) > 2){
+      if(Number(dados.versaoBackup) > VERSAO_BACKUP_MAX){
         Util.toast('⚠️ Este backup é de uma versão mais recente da app — nada foi alterado');
         inputImport.value = '';
         return;
@@ -192,6 +219,10 @@ function attachHandlersInicio(){
         inputImport.value = '';
         return;
       }
+      /* Backups antigos (versão 2, ids numéricos) entram numa base que já usa
+         UUID: o db.js converte os ids e as referências entre tabelas. Antes
+         dessa versão do db.js esta função não existe e nada muda. */
+      if(typeof DB.converterBackup === 'function') dados = DB.converterBackup(dados);
       try{
         const backupSeguranca = await UI.construirBackupCompleto();
         const blobSeg = new Blob([JSON.stringify(backupSeguranca, null, 2)], {type:'application/json'});
@@ -226,12 +257,16 @@ function attachHandlersInicio(){
             const incStore = tx.objectStore('incubacao');
             await DB.reqToPromise(incStore.clear());
             /* Backups novos: lista de chocos. Backups antigos: um só objecto. */
+            const usarUUID = !!DB.usaUUID;
             const listaInc = Array.isArray(dados.incubacao)
               ? dados.incubacao
-              : ((dados.incubacao && Object.keys(dados.incubacao).length) ? [{...dados.incubacao, id:1}] : []);
+              : ((dados.incubacao && Object.keys(dados.incubacao).length) ? [{...dados.incubacao, id: usarUUID ? Util.novoId() : 1}] : []);
+            const textoOuUUID = listaInc.some(r=>typeof r.id === 'string' && !/^\d+$/.test(r.id));
             let proximo = listaInc.reduce((m,r)=>Math.max(m, Number(r.id)||0), 0) + 1;
             for(const r of listaInc){
-              await DB.reqToPromise(incStore.put(r.id!=null ? r : {...r, id:proximo++}));
+              /* Sem id: UUID se a base já usa UUID (ou o backup traz ids de texto), senão "maior + 1". */
+              const novoId = (usarUUID || textoOuUUID) ? Util.novoId() : proximo++;
+              await DB.reqToPromise(incStore.put(r.id!=null ? r : {...r, id: novoId}));
             }
           }
         });
@@ -241,7 +276,12 @@ function attachHandlersInicio(){
         return;
       }
       Util.toast('✅ Backup importado com sucesso — cópia de segurança dos dados anteriores foi descarregada');
-      await afterMutacao();
+      try{
+        await afterMutacao();
+      }catch(errRender){
+        console.error(errRender);
+        Util.toast('✅ Backup importado, mas a página não conseguiu actualizar — recarrega-a.');
+      }
     }catch(err){
       console.error(err);
       Util.toast('⚠️ Ficheiro inválido — não foi possível importar. Nenhum dado foi alterado.');

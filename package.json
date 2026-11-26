@@ -1,0 +1,12 @@
+{
+  "name": "capoeira-digital",
+  "private": true,
+  "version": "2.19.0",
+  "description": "Capoeira Digital — aplicação PWA para gestão avícola",
+  "scripts": {
+    "test:ficheiros": "node tests/ficheiros.test.js"
+  },
+  "dependencies": {
+    "@netlify/blobs": "11.1.10"
+  }
+}

@@ -1,3 +1,5 @@
+/* @revisao 2.15.1 — identifica a versão deste ficheiro (ver REVISOES em config.js) */
+(globalThis.__revisao = globalThis.__revisao || {}).icons = '2.15.1';
 /* ============================================================
    Icon — ícones SVG inline, no estilo "linha fina consistente" (traço
    uniforme, 2px, pontas arredondadas) usado por bibliotecas como
@@ -38,7 +40,11 @@ const Icon = (function(){
     carteira: '<path d="M3 7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M17 12h.01"/><path d="M3 10h14"/>',
     talheres: '<path d="M6 2v7a2 2 0 0 0 2 2v11"/><path d="M14 2v20"/><path d="M18 2c-2 0-3 2-3 5v3c0 1.5 1 2 3 2"/>',
     galinha: '<path d="M9 4c1-1 2.5-1 3.5 0"/><path d="M7 8c-2 0-3 1.5-3 3 0 1.6 1.2 2.8 2.7 3l.3 4c.1 1.2 1 2 2.2 2h5.6c1.2 0 2.1-.8 2.2-2l.3-4c1.5-.2 2.7-1.4 2.7-3 0-1.5-1-3-3-3-.3-2.5-2.5-4.5-5-4.5S7.3 5.5 7 8Z"/><path d="M13 5.5 15 4l-.7 2.2"/>',
-    circulo: '<circle cx="12" cy="12" r="9"/>'
+    circulo: '<circle cx="12" cy="12" r="9"/>',
+    carrinho: '<path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6L5 3H2"/><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/>',
+    caixa: '<path d="M21 8l-9-5-9 5 9 5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/>',
+    servidor: '<rect x="3" y="4" width="18" height="6" rx="1"/><rect x="3" y="14" width="18" height="6" rx="1"/><path d="M7 7h.01M7 17h.01"/>',
+    saude: '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>'
   };
 
   /* Devolve o SVG completo (pronto a inserir em innerHTML). `opts.tamanho`

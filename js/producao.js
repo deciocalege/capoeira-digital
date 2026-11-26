@@ -1,13 +1,12 @@
+/* @revisao 2.15.1 — identifica a versão deste ficheiro (ver REVISOES em config.js) */
+(globalThis.__revisao = globalThis.__revisao || {}).producao = '2.15.1';
 /* ============ PÁGINA: PRODUÇÃO & INCUBAÇÃO ============ */
 
 let _prod = {ativas:[], compartimentos:[], aves:[]}; // dados da página, usados pelos botões
 
 async function renderProducao(){
   const app = document.getElementById('app');
-  app.innerHTML = `<div class="loading-msg">A carregar…</div>`;
-  app.innerHTML = await viewProducao();
-  attachHandlersProducao();
-  UI.iniciarRelogioChoco();
+  await UI.redesenhar(app, () => viewProducao(), () => { attachHandlersProducao(); UI.iniciarRelogioChoco(); });
 }
 
 async function afterMutacao(msg){
@@ -27,8 +26,8 @@ async function viewProducao(){
     .filter(a=>Number(a.femeas)>0)
     .slice()
     .sort((a,b)=>{
-      const ia = compartimentos.findIndex(c=>c.id===a.compartimentoId);
-      const ib = compartimentos.findIndex(c=>c.id===b.compartimentoId);
+      const ia = compartimentos.findIndex(c=>Util.mesmoId(c.id, a.compartimentoId));
+      const ib = compartimentos.findIndex(c=>Util.mesmoId(c.id, b.compartimentoId));
       return ia-ib;
     });
   const posturaPorAve = Calc.posturaPorAve(ovosLog, aves, compartimentos);
@@ -44,17 +43,17 @@ async function viewProducao(){
   <h2 class="section-title" id="titulo-form-inc">Iniciar novo choco</h2>
   <div class="compartimento">
     <form id="form-incubacao" class="inline" data-id="">
-      <div style="flex-basis:100%;">
+      <div class="cheio">
         <strong>Aves que estão a chocar</strong> (podes escolher mais de uma)
         ${femeasDisponiveis.length===0
           ? `<p class="footnote">Ainda não há fêmeas registadas em Gestão — podes iniciar o choco mesmo assim.</p>`
-          : `<div style="display:flex;flex-direction:column;gap:6px;margin-top:6px;">${femeasDisponiveis.map(a=>`
-              <label style="display:flex;gap:8px;align-items:center;"><input type="checkbox" name="aveIds" value="${a.id}"> ${Util.escapeHTML(a.especie)} (${compNome[a.compartimentoId]||'—'}) · ${a.femeas} fêmea(s)</label>`).join('')}</div>`}
+          : `<div class="stack mt-2">${femeasDisponiveis.map(a=>`
+              <label class="linha-centro"><input type="checkbox" name="aveIds" value="${a.id}"> ${Util.escapeHTML(a.especie)} (${compNome[a.compartimentoId]||'—'}) · ${a.femeas} fêmea(s)</label>`).join('')}</div>`}
       </div>
       <label>Nº de ovos <input type="number" name="numOvos" min="1" value="1" required></label>
       <label>Data de início <input type="date" name="dataInicio" value="${Util.hoje()}" required></label>
       <label>Duração da incubação (dias) — ex: galinha 21 · pato 28 · Muscovy 35 <input type="number" name="diasIncubacao" value="35" min="1" max="90" required></label>
-      <label>Compartimento onde está o choco
+      <label>Local onde está o choco
         <select name="compartimento">
           <option value="">— não definido —</option>
           ${compartimentos.map(c=>`<option value="${Util.escapeHTML(c.nome)}">${Util.escapeHTML(c.nome)}</option>`).join('')}
@@ -68,20 +67,20 @@ async function viewProducao(){
 
   <h2 class="section-title">Histórico de incubações</h2>
   ${concluidas.length===0 ? `<p class="empty">Ainda sem chocos concluídos.</p>` : `
-  <div class="table-scroll"><table class="responsive-stack">
-    <tr><th>Início</th><th>Aves</th><th>Ovos</th><th>Nascidos</th><th>Eclosão</th><th>Destino</th><th></th></tr>
-    ${concluidas.map(i=>{
-      const taxa = Calc.taxaEclosao(i);
-      return `<tr>
-      <td data-label="Início">${i.dataInicio||'—'}</td>
-      <td data-label="Aves">${(i.aveNomes||[]).map(n=>Util.escapeHTML(n)).join(', ')||'—'}</td>
-      <td data-label="Ovos">${i.numOvos}</td>
-      <td data-label="Nascidos">${i.nascidos}</td>
-      <td data-label="Eclosão">${taxa==null?'—':taxa+'%'}</td>
-      <td data-label="Destino">${Util.escapeHTML(i.destinoNome||'—')}</td>
-      <td class="row-actions"><button class="btn small danger" data-del-inc="${i.id}">Apagar</button></td></tr>`;
-    }).join('')}
-  </table></div>`}
+  ${Tabela.html({
+    id:'prod-incubacoes', limite:10,
+    linhas: concluidas,
+    contexto: i => ({taxa: Calc.taxaEclosao(i)}),
+    colunas:[
+      {titulo:'Início', valor:i=>Util.dataBR(i.dataInicio)||'—'},
+      {titulo:'Aves', valor:i=>(i.aveNomes||[]).join(', ')||'—', largo:true},
+      {titulo:'Ovos', valor:i=>i.numOvos},
+      {titulo:'Nascidos', valor:i=>i.nascidos},
+      {titulo:'Eclosão', valor:(i,c)=>c.taxa==null ? '—' : c.taxa+'%'},
+      {titulo:'Destino', valor:i=>i.destinoNome||'—', largo:true}
+    ],
+    acoes: i => `<button class="btn small danger" data-del-inc="${i.id}">Apagar</button>`
+  })}`}
 
   <h2 class="section-title">Postura de ovos</h2>
   <div class="cards">
@@ -101,40 +100,47 @@ async function viewProducao(){
   </form>
   <p class="footnote">${Icon.svg('dica')} Escolhe a fêmea/grupo que pôs os ovos para veres a produção separada por fêmea abaixo. Se não souberes qual foi, deixa "não especificado".</p>
 
-  <h3 style="font-size:.9rem;margin-top:14px;">Postura por fêmea/grupo</h3>
+  <h3 class="sub-titulo">Postura por fêmea/grupo</h3>
   ${posturaPorAve.length===0 ? `<p class="empty">Ainda sem dados suficientes para separar por fêmea.</p>` : `
-  <div class="table-scroll"><table class="responsive-stack">
-    <tr><th>Fêmea/grupo</th><th>Total de ovos</th></tr>
-    ${posturaPorAve.map(p=>`<tr><td data-label="Fêmea/grupo">${p.label}</td><td data-label="Total de ovos" class="num-font">${p.total}</td></tr>`).join('')}
-  </table></div>`}
+  ${Tabela.html({
+    id:'prod-por-femea',
+    linhas: posturaPorAve,
+    colunas:[
+      {titulo:'Fêmea/grupo', valor:p=>p.label},
+      {titulo:'Total de ovos', valor:p=>p.total, num:true}
+    ]
+  })}`}
 
   ${ovosLog.length===0 ? `<p class="empty">Ainda sem registos de postura.</p>` : `
-  <h3 style="font-size:.9rem;margin-top:14px;">Histórico de postura</h3>
-  <div class="table-scroll"><table class="responsive-stack">
-    <tr><th>Data</th><th>Qtd</th><th>Fêmea/grupo</th><th>Compartimento</th><th></th></tr>
-    ${ovosLog.slice().reverse().map(o=>{
-      const ave = o.aveId ? aves.find(a=>a.id===Number(o.aveId)) : null;
-      const compDaAve = ave ? (compNome[ave.compartimentoId]||'—') : Util.escapeHTML(o.compartimento||'—');
-      return `<tr>
-      <td data-label="Data">${o.data}</td>
-      <td data-label="Qtd">${o.qtd}</td>
-      <td data-label="Fêmea/grupo">${ave?Util.escapeHTML(ave.especie):'—'}</td>
-      <td data-label="Compartimento">${compDaAve}</td>
-      <td class="row-actions"><button class="btn small outline" data-edit-ovo="${o.id}">Editar</button> <button class="btn small danger" data-del-ovo="${o.id}">Apagar</button></td></tr>`;
-    }).join('')}
-  </table></div>`}
+  <h3 class="sub-titulo">Histórico de postura</h3>
+  ${Tabela.html({
+    id:'prod-postura', limite:20, busca:true, buscaPlaceholder:'Pesquisar fêmea, local…',
+    linhas: ovosLog.slice().reverse(),
+    contexto: o => {
+      const ave = o.aveId ? aves.find(a=>Util.mesmoId(a.id, o.aveId)) : null;
+      return {ave, compDaAve: ave ? (compNome[ave.compartimentoId]||'—') : Util.escapeHTML(o.compartimento||'—')};
+    },
+    colunas:[
+      {titulo:'Data', valor:o=>Util.dataBR(o.data)},
+      {titulo:'Qtd', valor:o=>o.qtd, num:true},
+      {titulo:'Fêmea/grupo', valor:(o,c)=>c.ave ? c.ave.especie : '—', filtro:true, largo:true},
+      {titulo:'Compartimento', valor:(o,c)=>c.compDaAve, html:true, largo:true}
+    ],
+    acoes: o => `<button class="btn small outline" data-edit-ovo="${o.id}">Editar</button> <button class="btn small danger" data-del-ovo="${o.id}">Apagar</button>`
+  })}`}
 
   <h2 class="section-title">Previsão de início de reprodução</h2>
   <p class="footnote">Estimativa por espécie a partir da data de entrada, só para aves com finalidade de reprodução (patos/patas ≈ 180 dias, galinhas/galos ≈ 150 dias). É uma previsão aproximada — serve para te ajudar a planear, não substitui a observação directa.</p>
   ${previsoesReproducao.length===0 ? `<p class="empty">Nenhuma ave com finalidade de reprodução registada ainda.</p>` : `
-  <div class="table-scroll"><table class="responsive-stack">
-    <tr><th>Espécie/Grupo</th><th>Compartimento</th><th>Estado</th></tr>
-    ${previsoesReproducao.map(({ave:a,prev})=>`<tr>
-      <td data-label="Espécie/Grupo">${Util.escapeHTML(a.especie)}</td>
-      <td data-label="Compartimento">${compNome[a.compartimentoId]||'—'}</td>
-      <td data-label="Estado">${prev.emIdade ? `${Icon.svg('check')} Já em idade reprodutiva` : `⏳ Faltam ${prev.diasFaltam} dias (prev. ${prev.dataPrevista})`}</td>
-    </tr>`).join('')}
-  </table></div>`}
+  ${Tabela.html({
+    id:'prod-previsoes',
+    linhas: previsoesReproducao,
+    colunas:[
+      {titulo:'Espécie/Grupo', valor:({ave:a})=>a.especie},
+      {titulo:'Compartimento', valor:({ave:a})=>compNome[a.compartimentoId]||'—'},
+      {titulo:'Estado', valor:({prev})=>prev.emIdade ? `${Icon.svg('check')} Já em idade reprodutiva` : `Faltam ${prev.diasFaltam} dias (prev. ${Util.dataBR(prev.dataPrevista)})`, html:true, largo:true}
+    ]
+  })}`}
   `;
 }
 
@@ -160,21 +166,21 @@ function attachHandlersProducao(){
       const numOvos = Math.round(Number(fd.get('numOvos')));
       if(!(diasIncubacao>=1 && diasIncubacao<=90)){ Util.toast('⚠️ A duração da incubação deve estar entre 1 e 90 dias'); return; }
       if(!(numOvos>=1)){ Util.toast('⚠️ Indica quantos ovos estão a chocar (pelo menos 1)'); return; }
-      const aveIds = fd.getAll('aveIds').map(Number);
+      const aveIds = fd.getAll('aveIds').map(v=>Util.chaveId(v));   // número (ids antigos) ou UUID
       const avesAtuais = await DB.getAll('aves');
       const comps = await DB.getAll('compartimentos');
-      const escolhidas = aveIds.map(id=>avesAtuais.find(x=>x.id===id)).filter(Boolean);
+      const escolhidas = aveIds.map(id=>avesAtuais.find(x=>Util.mesmoId(x.id, id))).filter(Boolean);
       const aveNomes = escolhidas.map(a=>{
-        const c = comps.find(c=>c.id===a.compartimentoId);
+        const c = comps.find(c=>Util.mesmoId(c.id, a.compartimentoId));
         return `${a.especie}${c ? ' ('+c.nome+')' : ''}`;
       });
       const especies = [...new Set(escolhidas.map(a=>a.especie).filter(Boolean))];
       const todas = await DB.getAll('incubacao');
-      const idEdit = fi.dataset.id ? Number(fi.dataset.id) : null;
-      const existente = idEdit ? todas.find(x=>x.id===idEdit) : null;
+      const idEdit = fi.dataset.id ? Util.chaveId(fi.dataset.id) : null;
+      const existente = idEdit ? todas.find(x=>Util.mesmoId(x.id, idEdit)) : null;
       await DB.put('incubacao', {
         ...(existente||{}),
-        id: existente ? existente.id : Calc.proximoIdIncubacao(todas),
+        id: existente ? existente.id : Calc.proximoIdIncubacao(todas, DB.usaUUID),   // UUID quando a base usa UUID
         ativa: true,
         numOvos, dataInicio, diasIncubacao,
         compartimento: fd.get('compartimento') || '',
@@ -187,14 +193,14 @@ function attachHandlersProducao(){
 
     /* Editar: preenche o formulário com os dados do choco escolhido */
     document.querySelectorAll('[data-edit-inc]').forEach(b=>b.addEventListener('click', ()=>{
-      const inc = _prod.ativas.find(x=>x.id===Number(b.dataset.editInc));
-      if(!inc) return;
+      const inc = _prod.ativas.find(x=>Util.mesmoId(x.id, b.dataset.editInc));
+      if(!inc) { Util.toast('⚠️ Registo não encontrado — pode já ter sido apagado. Recarrega a página.'); return; }
       fi.dataset.id = inc.id;
       fi.querySelector('[name=numOvos]').value = inc.numOvos;
       fi.querySelector('[name=dataInicio]').value = inc.dataInicio || Util.hoje();
       fi.querySelector('[name=diasIncubacao]').value = inc.diasIncubacao;
       fi.querySelector('[name=compartimento]').value = inc.compartimento || '';
-      fi.querySelectorAll('[name=aveIds]').forEach(c=>{ c.checked = (inc.aveIds||[]).includes(Number(c.value)); });
+      fi.querySelectorAll('[name=aveIds]').forEach(c=>{ c.checked = (inc.aveIds||[]).some(x=>Util.mesmoId(x, c.value)); });
       tituloForm.textContent = 'Editar choco';
       btnGuardar.textContent = 'Guardar alterações';
       btnCancelar.hidden = false;
@@ -204,9 +210,9 @@ function attachHandlersProducao(){
 
   /* Registar eclosão: pergunta quantos ovos chocaram e adiciona os pintos */
   document.querySelectorAll('[data-eclosao-inc]').forEach(b=>b.addEventListener('click', ()=>{
-    const inc = _prod.ativas.find(x=>x.id===Number(b.dataset.eclosaoInc));
+    const inc = _prod.ativas.find(x=>Util.mesmoId(x.id, b.dataset.eclosaoInc));
     const painel = document.getElementById('painel-eclosao');
-    if(!inc || !painel) return;
+    if(!inc || !painel) { Util.toast('⚠️ Registo não encontrado — pode já ter sido apagado. Recarrega a página.'); return; }
     const comps = _prod.compartimentos;
     if(comps.length===0){ Util.toast('⚠️ Cria primeiro um compartimento em Gestão para receber os pintos'); return; }
     const padrao = comps.find(c=>c.nome===inc.compartimento) || comps[0];
@@ -214,13 +220,14 @@ function attachHandlersProducao(){
     const nomes = (inc.aveNomes||[]).map(n=>Util.escapeHTML(n)).join(', ');
     painel.innerHTML = `
       <div class="compartimento">
-        <h3>🐣 Registar eclosão</h3>
+        <h3>${Icon.svg('ovo')} Registar eclosão</h3>
         <p class="footnote">${nomes ? nomes+' — ' : ''}${inc.numOvos} ovos em incubação.</p>
+        <p class="footnote">${Icon.svg('dica')} Os pintos entram <strong>sem sexo definido</strong>. Quando os conseguires identificar (alguns dias depois), regista os machos e as fêmeas em Gestão → <em>Editar / mover ave</em>.</p>
         <form id="form-eclosao" class="inline">
           <label>Quantos ovos chocaram? <input type="number" name="nascidos" min="0" max="${inc.numOvos}" value="${inc.numOvos}" required></label>
-          <label>Compartimento dos pintos
+          <label>Local dos pintos
             <select name="compartimentoId" required>
-              ${comps.map(c=>`<option value="${c.id}" ${c.id===padrao.id?'selected':''}>${Util.escapeHTML(c.nome)}</option>`).join('')}
+              ${comps.map(c=>`<option value="${c.id}" ${Util.mesmoId(c.id, padrao.id)?'selected':''}>${Util.escapeHTML(c.nome)}</option>`).join('')}
             </select>
           </label>
           <label>Espécie/Grupo dos pintos <input type="text" name="especie" list="lista-especies-eclosao" value="${Util.escapeHTML((inc.especies||[])[0]||'')}" placeholder="ex: Pato Muscovy" required></label>
@@ -235,10 +242,10 @@ function attachHandlersProducao(){
       e.preventDefault();
       const fd = new FormData(e.target);
       const nascidos = Math.round(Number(fd.get('nascidos')));
-      const compartimentoId = Number(fd.get('compartimentoId'));
+      const compartimentoId = Util.chaveId(fd.get('compartimentoId'));
       const especie = String(fd.get('especie')||'').trim();
       if(!(nascidos>=0 && nascidos<=inc.numOvos)){ Util.toast(`⚠️ O número de ovos que chocaram deve estar entre 0 e ${inc.numOvos}`); return; }
-      const destino = comps.find(c=>c.id===compartimentoId);
+      const destino = comps.find(c=>Util.mesmoId(c.id, compartimentoId));
       if(nascidos>0 && (!destino || !especie)){ Util.toast('⚠️ Indica a espécie e o compartimento dos pintos'); return; }
       const taxa = Math.round((nascidos/inc.numOvos)*100);
       const pergunta = nascidos>0
@@ -250,7 +257,7 @@ function attachHandlersProducao(){
           if(nascidos>0){
             await DB.reqToPromise(tx.objectStore('aves').add({
               compartimentoId, especie, qtd:nascidos, machos:0, femeas:0,
-              dataEntrada:Util.hoje(), finalidade:'Crescimento (nascidos no choco)'
+              dataEntrada:Util.hoje(), finalidade:'Crescimento (nascidos no choco)', autoDesde:Util.hoje()
             }));
           }
           await DB.reqToPromise(tx.objectStore('incubacao').put({
@@ -272,12 +279,12 @@ function attachHandlersProducao(){
   /* Apagar um choco (em curso ou do histórico) */
   document.querySelectorAll('[data-del-inc]').forEach(b=>b.addEventListener('click', async ()=>{
     const todas = await DB.getAll('incubacao');
-    const inc = todas.find(x=>x.id===Number(b.dataset.delInc));
+    const inc = todas.find(x=>Util.mesmoId(x.id, b.dataset.delInc));
     const msg = inc && inc.concluida
       ? 'Apagar este registo do histórico? As aves que já foram adicionadas ao plantel NÃO são removidas.'
       : 'Apagar este choco em curso? Esta acção não adiciona nenhuma ave.';
     if(!confirm(msg)) return;
-    await DB.del('incubacao', Number(b.dataset.delInc));
+    await DB.del('incubacao', Util.chaveId(b.dataset.delInc));
     await afterMutacao('Choco apagado');
   }));
   const fo = document.getElementById('form-ovos');
@@ -285,7 +292,7 @@ function attachHandlersProducao(){
     e.preventDefault();
     const fd = new FormData(fo);
     const aveIdRaw = fd.get('aveId');
-    const aveId = aveIdRaw ? Number(aveIdRaw) : null;
+    const aveId = aveIdRaw ? Util.chaveId(aveIdRaw) : null;
     let compartimentoNome = '';
     if(aveId){
       const ave = await DB.get('aves', aveId);
@@ -296,9 +303,9 @@ function attachHandlersProducao(){
     }
     const dadosOvo = {data:fd.get('data'), qtd:Number(fd.get('qtd')), aveId, compartimento:compartimentoNome};
     if(fo.dataset.id){
-      const id = Number(fo.dataset.id);
+      const id = Util.chaveId(fo.dataset.id);
       const todos = await DB.getAll('ovosLog');
-      const antigo = todos.find(o=>o.id===id);
+      const antigo = todos.find(o=>Util.mesmoId(o.id, id));
       await DB.put('ovosLog', {...(antigo||{}), ...dadosOvo, id});
       await afterMutacao('Postura actualizada');
     }else{
@@ -308,8 +315,8 @@ function attachHandlersProducao(){
   });
   document.querySelectorAll('[data-edit-ovo]').forEach(b=>b.addEventListener('click', async ()=>{
     const todos = await DB.getAll('ovosLog');
-    const o = todos.find(x=>x.id===Number(b.dataset.editOvo));
-    if(!o || !fo) return;
+    const o = todos.find(x=>Util.mesmoId(x.id, b.dataset.editOvo));
+    if(!o || !fo) { Util.toast('⚠️ Registo não encontrado — pode já ter sido apagado. Recarrega a página.'); return; }
     fo.dataset.id = o.id;
     fo.querySelector('[name=data]').value = o.data;
     fo.querySelector('[name=qtd]').value = o.qtd;
@@ -325,7 +332,7 @@ function attachHandlersProducao(){
     bCancelOvo.hidden = true;
   });
   document.querySelectorAll('[data-del-ovo]').forEach(b=>b.addEventListener('click', async ()=>{
-    await DB.del('ovosLog', Number(b.dataset.delOvo));
+    await DB.del('ovosLog', Util.chaveId(b.dataset.delOvo));
     await afterMutacao();
   }));
 }

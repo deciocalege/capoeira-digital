@@ -23,6 +23,10 @@
   --branco:#ffffff;
   --sombra: 0 4px 14px rgba(20,30,45,.08);
   --cinza-legenda:#545d6d;
+  --cinza-nota:#69707d;      /* notas, rodapés e textos de "vazio" (juntou #69707d e #7c8494) */
+  --positivo:#2d6a3f;
+  --fundo-perigo:#f7dedb; --fundo-aviso:#faedd6; --fundo-info:#e9edf6; --fundo-bom:#e3ecf7;
+  --fundo-campo-erro:#fdf1ee; --trilho:#dbe1ec; --aviso-texto:#8a5a10;
 
   /* Escala de espaçamento — antes eram valores soltos (6px,7px,8px,9px…)
      espalhados pelo ficheiro; agora tudo deriva desta escala. */
@@ -46,6 +50,7 @@
   --altura-cabecalho:72px;
 }
 *{box-sizing:border-box;}
+[hidden]{display:none !important;}
 /* Rede de segurança geral: garante que nada (uma palavra comprida sem
    espaços, um valor de texto grande, etc.) consegue alargar a página
    para lá da largura do ecrã em telemóveis — se acontecer, o conteúdo
@@ -94,6 +99,7 @@ header.app-header{
 }
 .quick-nav[hidden]{display:none;}
 .quick-nav a{
+  display:flex;align-items:center;gap:var(--sp-2);
   padding:var(--sp-3) var(--sp-4);text-decoration:none;color:var(--tinta);
   font-size:var(--text-sm);border-bottom:1px solid var(--linha);
 }
@@ -150,7 +156,7 @@ h2.section-title{
   display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);
 }
 h2.section-title:first-child{margin-top:0;}
-.live-clock{font-size:.68rem;font-family:'Courier New',ui-monospace,monospace;color:#7c8494;font-weight:normal;border:none;letter-spacing:.03em;}
+.live-clock{font-size:.68rem;font-family:'Courier New',ui-monospace,monospace;color:var(--cinza-nota);font-weight:normal;border:none;letter-spacing:.03em;}
 
 /* ============ GRÁFICOS (barras e donut, SVG puro) ============ */
 .chart-svg{width:100%;height:auto;display:block;}
@@ -177,7 +183,7 @@ h2.section-title:first-child{margin-top:0;}
 .card .label{font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.06em;color:var(--cinza-legenda);}
 .card .value{font-size:var(--text-xl);font-family:'Courier New',ui-monospace,monospace;color:var(--mato-esc);margin-top:4px;}
 .card .value.neg{color:var(--sangue);}
-.card .sub{font-size:var(--text-xs);color:#69707d;margin-top:2px;}
+.card .sub{font-size:var(--text-xs);color:var(--cinza-nota);margin-top:2px;}
 
 /* ============ DASHBOARD PRINCIPAL (Início) ============
    Cartões maiores/em destaque para as 4 métricas que respondem a
@@ -196,10 +202,10 @@ h2.section-title:first-child{margin-top:0;}
   padding:10px 14px;border-radius:var(--r-sm);font-size:var(--text-sm);
   border-left:4px solid var(--linha);background:var(--casca);
 }
-.lista-alertas li.alerta-perigo{border-left-color:var(--sangue);background:#f7dedb;}
-.lista-alertas li.alerta-aviso{border-left-color:var(--aviso);background:#faedd6;}
-.lista-alertas li.alerta-info{border-left-color:var(--milho);background:#e9edf6;}
-.lista-alertas li.alerta-bom{border-left-color:var(--mato-esc);background:#e3ecf7;}
+.lista-alertas li.alerta-perigo{border-left-color:var(--sangue);background:var(--fundo-perigo);}
+.lista-alertas li.alerta-aviso{border-left-color:var(--aviso);background:var(--fundo-aviso);}
+.lista-alertas li.alerta-info{border-left-color:var(--milho);background:var(--fundo-info);}
+.lista-alertas li.alerta-bom{border-left-color:var(--mato-esc);background:var(--fundo-bom);}
 
 .compartimento{
   background:var(--branco);border:1px solid var(--linha);border-radius:var(--r-md);
@@ -235,31 +241,51 @@ tr:last-child td{border-bottom:none;}
    esquerda do valor); tabelas sem essa marcação simplesmente empilham
    sem rótulo, o que ainda é legível mas menos claro. ---- */
 @media(max-width:640px){
-  table.responsive-stack{border:none;}
-  table.responsive-stack thead{display:none;}
+  /* A tabela inteira passa a bloco (largura = a do cartão) e a linha de
+     cabeçalhos desaparece: antes, os cabeçalhos largos esticavam a tabela
+     e empurravam os valores para fora do ecrã. */
+  table.responsive-stack, table.responsive-stack tbody{display:block;width:100%;min-width:0;border:none;}
+  table.responsive-stack thead, table.responsive-stack tr.cabecalho, table.responsive-stack tr:has(> th){display:none;}
+  /* Cada registo vira uma "ficha": título (1.ª célula) + pares etiqueta/valor
+     em 2 colunas + ações no fim. */
   table.responsive-stack tr{
-    display:block;background:var(--casca);border:1px solid var(--linha);
-    border-radius:var(--r-sm);padding:var(--sp-2) var(--sp-3);margin-bottom:var(--sp-2);
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-flow:row dense;gap:2px 16px;
+    background:var(--branco);border:1px solid var(--linha);border-left:4px solid var(--mato);
+    border-radius:var(--r-md);padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-3);box-shadow:var(--sombra);
   }
-  table.responsive-stack tr:last-child{margin-bottom:0;}
   table.responsive-stack td{
-    display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px var(--sp-3);
-    padding:6px 0;border-bottom:1px dashed var(--linha);text-align:right;
-    /* Correção do "estouro": texto longo (ex: descrições compridas em
-       Finanças, nomes de espécie longos em Gestão) agora quebra linha
-       dentro da célula, em vez de forçar a célula para fora da largura
-       do cartão — que era a causa das tabelas a saírem dos quadros. */
-    min-width:0;overflow-wrap:anywhere;
+    display:block;min-width:0;overflow-wrap:anywhere;text-align:left;
+    padding:5px 0;border:none;font-size:.9rem;line-height:1.3;color:var(--tinta);
   }
-  table.responsive-stack td:last-child{border-bottom:none;}
   table.responsive-stack td[data-label]::before{
-    content:attr(data-label);
-    font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.04em;
-    color:var(--cinza-legenda);text-align:left;flex:0 0 auto;
+    content:attr(data-label);display:block;margin-bottom:1px;
+    font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;color:var(--cinza-legenda);
   }
-  /* Célula de acções (botão apagar/editar): não faz sentido em par label/valor. */
-  table.responsive-stack td.row-actions{justify-content:flex-end;}
-  table.responsive-stack td.row-actions::before{content:'';}
+  table.responsive-stack td:empty{display:none;}
+  table.responsive-stack td, table.responsive-stack td.num-font{font-family:Georgia,'Iowan Old Style','Palatino Linotype',serif;font-variant-numeric:tabular-nums;}
+  /* 1.ª célula = título da ficha (data, nome do lote, tipo…) */
+  table.responsive-stack td:first-child{
+    grid-column:1 / -1;font-weight:bold;color:var(--mato-esc);font-size:1rem;
+    padding-bottom:8px;margin-bottom:4px;border-bottom:1px solid var(--linha);
+  }
+  table.responsive-stack td:first-child::before{display:none;}
+  /* Campos que costumam ter texto comprido ocupam a linha toda */
+  table.responsive-stack td[data-label="Descrição"], table.responsive-stack td[data-label="Produto"],
+  table.responsive-stack td[data-label="Cliente"], table.responsive-stack td[data-label="Cliente/Fornecedor"],
+  table.responsive-stack td[data-label="Aves"], table.responsive-stack td[data-label="Destino"],
+  table.responsive-stack td[data-label="Destino dos pintos"], table.responsive-stack td[data-label="Categoria"],
+  table.responsive-stack td[data-label="Notas"], table.responsive-stack td[data-label="Hoje come"],
+  table.responsive-stack td[data-label="Ração gasta"], table.responsive-stack td[data-label="Automático"],
+  table.responsive-stack td[data-label="Origem"], table.responsive-stack td[data-label="Mistura"],
+  table.responsive-stack td[data-label="Finalidade"], table.responsive-stack td[data-label="Compartimento"],
+  table.responsive-stack td[data-label="Espécie/Grupo"], table.responsive-stack td[data-label="Local"]{grid-column:1 / -1;}
+  /* Ações no fim da ficha, lado a lado */
+  table.responsive-stack td.row-actions{
+    grid-column:1 / -1;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:var(--sp-2);
+    margin-top:6px;padding-top:var(--sp-3);border-top:1px dashed var(--linha);
+  }
+  table.responsive-stack td.row-actions::before{display:none;}
+  table.responsive-stack td.row-actions:first-child{border-top:none;margin-top:0;padding-top:0;}
 }
 
 .btn{
@@ -289,7 +315,7 @@ input[type=number]{width:100px;}
 /* Estado de erro visível — usado depois de uma tentativa de submissão
    falhada (ver validação em app.js), não só o :invalid nativo do browser
    (que pode disparar antes de a pessoa sequer começar a preencher). */
-input.campo-invalido,select.campo-invalido{border-color:var(--sangue);background:#fdf1ee;}
+input.campo-invalido,select.campo-invalido{border-color:var(--sangue);background:var(--fundo-campo-erro);}
 
 @media(max-width:640px){
   form.inline{flex-direction:column;align-items:stretch;gap:var(--sp-3);}
@@ -299,7 +325,7 @@ input.campo-invalido,select.campo-invalido{border-color:var(--sangue);background
   form.inline button{width:100%;margin-top:2px;}
 }
 
-.progress-wrap{background:#dbe1ec;border-radius:20px;height:14px;overflow:hidden;margin:6px 0;}
+.progress-wrap{background:var(--trilho);border-radius:20px;height:14px;overflow:hidden;margin:6px 0;}
 .progress-bar{height:100%;transition:width .5s ease, background-color .3s ease;background:var(--mato);}
 
 /* ============ SEMÁFORO DO CHOCO (calmo → atenção → iminente/terminado) ============
@@ -329,17 +355,17 @@ input.campo-invalido,select.campo-invalido{border-color:var(--sangue);background
 .icon-dot-perigo{background:var(--sangue);}
 .app-icon .icon{width:28px;height:28px;}
 .card .label .icon, .chart-card h3 .icon{margin-right:4px;}
-.status-pill-aviso{background:#faedd6;color:#8a5a10;}
-.status-pill-calmo{background:#e3ecf7;color:var(--mato-esc);}
-.status-pill-perigo{background:#f7dedb;color:var(--sangue);}
+.status-pill-aviso{background:var(--fundo-aviso);color:var(--aviso-texto);}
+.status-pill-calmo{background:var(--fundo-bom);color:var(--mato-esc);}
+.status-pill-perigo{background:var(--fundo-perigo);color:var(--sangue);}
 
-.empty{color:#7c8494;font-style:italic;font-size:var(--text-sm);padding:var(--sp-2) 0;}
+.empty{color:var(--cinza-nota);font-style:italic;font-size:var(--text-sm);padding:var(--sp-2) 0;}
 .row-actions{text-align:right;}
 .tag{display:inline-block;font-size:.68rem;background:var(--casca);color:var(--terra);padding:2px 7px;border-radius:20px;margin-right:4px;}
-.footnote{font-size:var(--text-xs);color:#69707d;margin-top:6px;}
+.footnote{font-size:var(--text-xs);color:var(--cinza-nota);margin-top:6px;}
 .split{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-4);}
 @media(max-width:640px){.split{grid-template-columns:1fr;} .stats-strip{grid-template-columns:repeat(2,1fr);}}
-.loading-msg{padding:40px;text-align:center;color:#69707d;font-style:italic;}
+.loading-msg{padding:40px;text-align:center;color:var(--cinza-nota);font-style:italic;}
 .toast{
   position:fixed;bottom:16px;left:50%;transform:translateX(-50%);
   background:var(--mato-esc);color:var(--pena);padding:10px 20px;border-radius:var(--r-sm);
@@ -349,15 +375,15 @@ input.campo-invalido,select.campo-invalido{border-color:var(--sangue);background
 .toast.show{opacity:1;}
 
 .alert-banner{
-  background:var(--sangue);color:#fff;padding:var(--sp-3) var(--sp-4);border-radius:var(--r-sm);
+  background:var(--sangue);color:var(--branco);padding:var(--sp-3) var(--sp-4);border-radius:var(--r-sm);
   margin:var(--sp-2) 0;font-weight:bold;box-shadow:var(--sombra);display:flex;align-items:center;gap:var(--sp-2);
 }
-.alert-banner.warn{background:var(--aviso);color:#fff;}
+.alert-banner.warn{background:var(--aviso);color:var(--branco);}
 .countdown{
   display:inline-block;font-family:'Courier New',ui-monospace,monospace;font-size:1.4rem;
   background:var(--casca);color:var(--terra);padding:2px 10px;border-radius:6px;margin:0 4px;
 }
-.countdown.zero{background:var(--sangue);color:#fff;}
+.countdown.zero{background:var(--sangue);color:var(--branco);}
 
 /* ============ RODAPÉ (gerado por JS em todas as páginas — ver renderFooter() em common.js) ============ */
 .app-footer{
@@ -366,3 +392,251 @@ input.campo-invalido,select.campo-invalido{border-color:var(--sangue);background
   border-top:1px solid var(--linha);
 }
 .app-footer strong{color:var(--mato-esc);}
+
+
+/* ===== Atalhos em pastilhas, resumos (details) e ligações dentro do conteúdo ===== */
+.atalhos{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin:var(--sp-3) 0 var(--sp-4);}
+.atalhos a, .atalhos button{
+  display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:0 var(--sp-3);
+  border:1px solid var(--linha);border-radius:999px;background:var(--branco);color:var(--mato-esc);
+  font-family:inherit;font-size:var(--text-sm);font-weight:bold;text-decoration:none;box-shadow:var(--sombra);cursor:pointer;
+}
+.atalhos a:hover, .atalhos button:hover{border-color:var(--mato);}
+.atalhos a:active, .atalhos button:active{background:var(--casca);}
+.atalhos .ativo{background:var(--mato-esc);color:var(--branco);border-color:var(--mato-esc);}
+details > summary{
+  cursor:pointer;list-style:none;display:flex;align-items:center;gap:var(--sp-2);
+  font-weight:bold;color:var(--mato-esc);padding:var(--sp-2) 0;min-height:var(--toque-min);
+}
+details > summary::-webkit-details-marker{display:none;}
+details > summary::before{content:"▸";color:var(--mato);transition:transform .15s;}
+details[open] > summary::before{transform:rotate(90deg);}
+.footnote a, .empty a, .compartimento a:not(.btn){color:var(--mato);font-weight:bold;text-decoration:none;border-bottom:1px dotted var(--mato);}
+.painel-extrato{background:var(--branco);border:1px solid var(--linha);border-radius:var(--r-md);padding:var(--sp-3);margin:var(--sp-3) 0;box-shadow:var(--sombra);}
+.pos{color:var(--positivo);} .neg{color:var(--sangue);}
+
+
+/* ===== Tipografia e listas mais coerentes em todas as páginas ===== */
+main h3{font-size:var(--text-base);color:var(--mato-esc);margin:var(--sp-5) 0 var(--sp-2);}
+.compartimento p{margin:4px 0;}
+main ul:not(.lista-alertas){padding-left:1.2rem;margin:var(--sp-2) 0;font-size:var(--text-sm);line-height:1.45;}
+main li{margin:3px 0;}
+.cards .card:not(.dash-card):not(.card-link) .value{
+  font-size:1.2rem;letter-spacing:-.01em;line-height:1.2;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;
+}
+.cards .card .label{line-height:1.3;}
+.cards.cards-detalhe{grid-template-columns:repeat(auto-fit,minmax(280px,1fr));}
+.cards.cards-detalhe .card .sub{line-height:1.4;margin-top:3px;font-size:.78rem;}
+.badge{
+  display:inline-block;background:var(--mato);color:var(--pena);font-size:.66rem;font-weight:normal;
+  padding:2px 9px;border-radius:20px;letter-spacing:.03em;vertical-align:middle;text-transform:none;
+}
+.badge.alerta{background:var(--sangue);color:var(--branco);}
+details > summary{font-size:.92rem;}
+.compra-linha{
+  display:flex;justify-content:space-between;align-items:center;gap:var(--sp-2);flex-wrap:wrap;
+  padding:var(--sp-2) 0;border-top:1px dashed var(--linha);font-size:.82rem;color:var(--cinza-legenda);
+}
+.compra-linha .acoes-mini{display:flex;gap:6px;margin-left:auto;}
+.acoes{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin-top:var(--sp-3);}
+
+.passos-servidor{padding-left:1.3rem;font-size:var(--text-sm);line-height:1.5;}
+.passos-servidor li{margin:var(--sp-2) 0;}
+code{background:var(--casca);padding:1px 6px;border-radius:4px;font-size:.85em;}
+
+/* ============ MENU AGRUPADO + BARRA INFERIOR (telemóvel) ============ */
+.quick-nav-grupo{
+  padding:var(--sp-2) var(--sp-4) var(--sp-1);background:var(--casca);
+  font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--cinza-legenda);
+}
+.quick-nav a:focus-visible,.bottom-nav a:focus-visible,.bottom-nav button:focus-visible{
+  outline:2px solid var(--mato);outline-offset:-2px;
+}
+.bottom-nav{display:none;}
+@media(max-width:720px){
+  .bottom-nav{
+    display:grid;grid-auto-flow:column;grid-auto-columns:1fr;
+    position:fixed;left:0;right:0;bottom:0;z-index:198;
+    background:var(--branco);border-top:1px solid var(--linha);
+    box-shadow:0 -2px 10px rgba(20,30,45,.08);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  .bottom-nav a,.bottom-nav button{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    min-height:56px;padding:6px 2px;background:none;border:none;border-top:3px solid transparent;
+    font:inherit;font-size:.65rem;color:var(--cinza-legenda);text-decoration:none;cursor:pointer;
+  }
+  .bottom-nav a:active,.bottom-nav button:active{background:var(--casca);}
+  .bottom-nav a.active{color:var(--mato-esc);font-weight:bold;border-top-color:var(--mato);}
+  body{padding-bottom:calc(56px + env(safe-area-inset-bottom,0px));}
+  .toast{bottom:calc(72px + env(safe-area-inset-bottom,0px));}
+}
+
+/* ============ LISTAGENS (js/tabela.js) ============ */
+/* O CSS das tabelas em cartões define display:grid nas linhas, e isso
+   venceria o atributo [hidden] — por isso esconder é forçado aqui. */
+.tabela-lista tr[hidden]{display:none !important;}
+.tabela-barra{display:flex;flex-wrap:wrap;gap:var(--sp-2) var(--sp-3);align-items:end;margin:var(--sp-2) 0 var(--sp-3);}
+.tabela-barra label{display:flex;flex-direction:column;gap:3px;font-size:var(--text-xs);color:var(--cinza-legenda);}
+.tabela-barra .tabela-busca{flex:1 1 220px;}
+.tabela-barra input[type=search]{width:100%;}
+.tabela-rodape{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);flex-wrap:wrap;margin-top:var(--sp-2);}
+.tabela-contagem{font-size:var(--text-xs);color:var(--cinza-legenda);}
+.tabela-rodape .btn[hidden]{display:none;}
+th.col-num,td.col-num{text-align:right;font-variant-numeric:tabular-nums;}
+table.responsive-stack td.col-largo{grid-column:1 / -1;}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;}
+@media(max-width:640px){
+  td.col-num{text-align:left;}
+  .tabela-barra label{width:100%;}
+  .tabela-barra select{width:100%;}
+}
+
+/* ============ SEPARADORES (UI.separadores, em common.js) ============ */
+.abas{
+  flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+  position:sticky;top:var(--altura-cabecalho);z-index:90;
+  background:var(--pena);margin:0 0 var(--sp-3);padding:var(--sp-2) 0;
+  border-bottom:1px solid var(--linha);
+}
+.abas::-webkit-scrollbar{display:none;}
+.abas button{flex:0 0 auto;white-space:nowrap;display:inline-flex;align-items:center;gap:var(--sp-1);min-height:44px;font:inherit;cursor:pointer;}
+.abas button:focus-visible{outline:2px solid var(--mato);outline-offset:2px;}
+.aba-painel[hidden]{display:none;}
+.aba-painel > .section-title:first-child{margin-top:var(--sp-2);}
+.det-backup{margin:var(--sp-4) 0;}
+.det-backup > summary{cursor:pointer;padding:var(--sp-2) 0;}
+
+/* ============ UTILITÁRIOS (substituem os style="" que estavam nos JS) ============
+   Espaçamentos seguem a escala --sp-*. Os poucos style="" que sobram são
+   valores calculados (largura de uma barra de progresso, cor de uma legenda). */
+.m-0{margin:0;} .mt-0{margin-top:0;}
+.mt-2{margin-top:var(--sp-2);} .mt-3{margin-top:var(--sp-3);}
+.mb-2{margin-bottom:var(--sp-2);}
+.my-2{margin-top:var(--sp-2);margin-bottom:var(--sp-2);} .my-3{margin-top:var(--sp-3);margin-bottom:var(--sp-3);}
+.stack{display:flex;flex-direction:column;gap:var(--sp-2);}
+.linha-centro{display:flex;gap:var(--sp-2);align-items:center;}
+.acoes-linha{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin-top:var(--sp-2);}
+.alinha-inicio{align-self:flex-start;}
+.cheio{flex-basis:100%;}
+.campo-bloco{display:block;margin:var(--sp-2) 0;}
+.campo-check{flex-basis:100%;flex-direction:row;align-items:center;gap:var(--sp-2);}
+.txt-erro{color:var(--sangue);} .borda-erro{border-color:var(--sangue);}
+.sub-titulo{font-size:.9rem;margin-top:var(--sp-4);}
+.nota-pequena{font-size:.8rem;color:var(--cinza-legenda);font-weight:normal;}
+.area-codigo{width:100%;font-family:monospace;font-size:.7rem;}
+
+/* ============ ORGANIZAÇÃO POR TIPO E RAÇA (Gestão) ============ */
+.grupos-tipo{display:flex;flex-direction:column;gap:var(--sp-3);}
+.grupo-tipo{background:var(--branco);border:1px solid var(--linha);border-radius:var(--r-md);}
+.grupo-tipo > summary{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--sp-2) var(--sp-3);padding:var(--sp-3) var(--sp-4);cursor:pointer;}
+.grupo-tipo-nome{font-size:var(--text-lg, 1.1rem);font-weight:bold;color:var(--mato-esc);}
+.grupo-tipo-total{font-size:var(--text-xl);color:var(--mato-esc);}
+.grupo-racas{border-top:1px solid var(--linha);padding:var(--sp-1) var(--sp-4) var(--sp-3) var(--sp-5, 24px);}
+.grupo-raca{padding:var(--sp-1) 0;}
+.grupo-raca > summary{cursor:pointer;padding:var(--sp-1) 0;}
+.grupo-lotes{margin:var(--sp-1) 0 var(--sp-2);padding-left:var(--sp-4);font-size:var(--text-sm);color:var(--cinza-legenda);}
+.grupo-lotes li{padding:2px 0;}
+.aviso-nomes{background:var(--fundo-aviso);border-radius:var(--r-md);padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-3);}
+.aviso-nomes p{margin:0 0 var(--sp-2);}
+
+/* ============ LISTAS DE ESCOLHA (js/select.js) ============
+   Substituem a lista nativa do telemóvel por uma lista da app, que abre
+   logo por baixo do campo. O <select> verdadeiro fica por cima, invisível,
+   a guardar o valor (e a validação "obrigatório"). */
+.select-custom{position:relative;display:block;width:100%;}
+.select-nativo{position:absolute !important;left:0;top:0;width:100% !important;height:100%;opacity:0;pointer-events:none;}
+.select-botao{
+  display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);width:100%;
+  min-height:var(--toque-min);padding:9px 10px 9px 12px;text-align:left;
+  font-family:inherit;font-size:var(--text-sm);color:var(--tinta);
+  background:var(--branco);border:1px solid var(--linha);border-radius:var(--r-sm);cursor:pointer;
+}
+.select-botao.vazio .select-valor{color:var(--cinza-nota);}
+.select-valor{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.select-seta{flex:0 0 auto;color:var(--mato-esc);transition:transform .15s;}
+.select-custom.aberto .select-seta{transform:rotate(180deg);}
+.select-custom.aberto .select-botao{border-color:var(--mato);}
+.select-botao:focus-visible{outline:2px solid var(--milho);outline-offset:1px;}
+.select-botao:disabled{opacity:.6;cursor:not-allowed;background:var(--casca);}
+.select-custom:has(select.campo-invalido) .select-botao{border-color:var(--sangue);background:var(--fundo-campo-erro);}
+.select-lista{
+  position:fixed;z-index:300;margin:0;padding:var(--sp-1);list-style:none;
+  overflow-y:auto;overscroll-behavior:contain;
+  background:var(--branco);border:1px solid var(--mato);border-radius:var(--r-md);
+  box-shadow:0 10px 28px rgba(20,30,45,.18);font-family:inherit;font-size:var(--text-sm);
+}
+.select-lista.por-cima{box-shadow:0 -10px 28px rgba(20,30,45,.18);}
+.select-opcao{
+  display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);
+  min-height:var(--toque-min);padding:var(--sp-2) var(--sp-3);
+  border-radius:var(--r-sm);border-left:3px solid transparent;color:var(--tinta);cursor:pointer;
+}
+.select-opcao.vazia .select-opcao-texto{color:var(--cinza-nota);}
+.select-opcao.ativa,.select-opcao:active{background:var(--casca);}
+.select-opcao.selecionada{background:var(--fundo-bom);border-left-color:var(--mato);font-weight:bold;color:var(--mato-esc);}
+.select-opcao-marca{display:inline-flex;visibility:hidden;color:var(--mato);}
+.select-opcao.selecionada .select-opcao-marca{visibility:visible;}
+.select-opcao.desativada{opacity:.45;cursor:not-allowed;}
+.select-grupo{padding:var(--sp-2) var(--sp-3) var(--sp-1);font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.06em;color:var(--cinza-legenda);}
+
+/* ============ AVISO DE FICHEIROS DESACTUALIZADOS (common.js) ============ */
+.aviso-ficheiros{
+  margin:var(--sp-3) var(--sp-4);padding:var(--sp-3) var(--sp-4);
+  background:var(--fundo-perigo);border:1px solid var(--sangue);border-left-width:5px;border-radius:var(--r-md);
+  color:var(--tinta);font-size:var(--text-sm);
+}
+.aviso-ficheiros strong{display:flex;align-items:center;gap:var(--sp-2);color:var(--sangue);}
+.aviso-ficheiros p{margin:var(--sp-2) 0;}
+.aviso-ficheiros ul{margin:var(--sp-2) 0;padding-left:var(--sp-5);}
+.aviso-ficheiros code{font-size:.85em;background:var(--branco);padding:1px 5px;border-radius:4px;}
+
+/* ============ ASSISTENTE DE PRIMEIRO USO (common.js) ============ */
+.assistente-inicial{max-width:520px;margin:var(--sp-5) auto;}
+.assistente-inicial h2{margin:0 0 var(--sp-1);color:var(--mato-esc);font-size:var(--text-xl);}
+.assistente-opcoes{display:flex;flex-direction:column;gap:var(--sp-3);margin:var(--sp-4) 0;}
+.assistente-opcao{
+  display:flex;align-items:center;gap:var(--sp-3);width:100%;text-align:left;
+  padding:var(--sp-3) var(--sp-4);min-height:64px;font:inherit;color:var(--tinta);cursor:pointer;
+  background:var(--branco);border:1px solid var(--linha);border-radius:var(--r-md);
+}
+.assistente-opcao strong{display:block;color:var(--mato-esc);}
+.assistente-opcao small{display:block;color:var(--cinza-legenda);font-size:var(--text-xs);margin-top:2px;}
+.assistente-opcao.principal{border-color:var(--mato);border-left-width:5px;background:var(--fundo-bom);}
+.assistente-opcao:active{background:var(--casca);}
+.assistente-opcao:disabled{opacity:.6;cursor:wait;}
+.assistente-opcao:focus-visible{outline:2px solid var(--milho);outline-offset:2px;}
+.assistente-icone{flex:0 0 auto;display:inline-flex;color:var(--mato);}
+
+/* ============ SINCRONIZAÇÃO (indicador no cabeçalho + painel na página Servidor) ============ */
+.sync-estado{
+  flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;max-width:44vw;
+  padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.12);
+  color:var(--pena);font-size:.7rem;line-height:1;text-decoration:none;white-space:nowrap;
+}
+.sync-estado .sync-texto{overflow:hidden;text-overflow:ellipsis;}
+.sync-ponto{display:inline-block;width:9px;height:9px;border-radius:50%;background:#b0b8c9;flex:0 0 auto;}
+.sync-ok .sync-ponto{background:#7ed9a0;}
+.sync-a-sincronizar .sync-ponto{background:#f2c94c;animation:sync-pulsar 1s ease-in-out infinite;}
+.sync-offline .sync-ponto{background:#b0b8c9;}
+.sync-sessao .sync-ponto,.sync-erro .sync-ponto{background:#ff8a80;}
+@keyframes sync-pulsar{50%{opacity:.35;}}
+@media(prefers-reduced-motion:reduce){.sync-a-sincronizar .sync-ponto{animation:none;}}
+@media(max-width:420px){.sync-estado .sync-texto{display:none;}.sync-estado{padding:8px;}}
+.sync-seccao{margin-top:var(--sp-3);padding-top:var(--sp-3);border-top:1px solid var(--linha);}
+.sync-painel{background:var(--casca);border-radius:var(--r-md);padding:var(--sp-3) var(--sp-4);margin:var(--sp-2) 0;}
+.sync-painel p{margin:0 0 var(--sp-2);}
+.sync-painel .ponto,.sync-painel .sync-ponto{margin-right:2px;}
+.sync-painel .sync-ok{background:#2d6a3f;}
+.sync-painel .sync-a-sincronizar{background:#c98a2c;}
+.sync-painel .sync-offline{background:#8a93a5;}
+.sync-painel .sync-sessao,.sync-painel .sync-erro{background:var(--sangue);}
+.footnote.erro{color:var(--sangue);}
+
+/* ============ PESSOAS E CONVITES (página Servidor) ============ */
+.lista-pessoas{list-style:none;margin:var(--sp-2) 0;padding:0;display:flex;flex-direction:column;gap:var(--sp-2);}
+.pessoa{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2) var(--sp-3);padding:var(--sp-2) var(--sp-3);background:var(--branco);border:1px solid var(--linha);border-radius:var(--r-md);}
+.pessoa-nome{flex:1 1 180px;min-width:0;overflow-wrap:anywhere;}
+.pessoa select,.pessoa .select-custom{width:auto;min-width:140px;}
+.codigo-convite{font-family:'Courier New',ui-monospace,monospace;font-size:var(--text-xl);letter-spacing:.12em;color:var(--mato-esc);margin:var(--sp-2) 0;user-select:all;}
+.convite-novo{border-left:5px solid var(--mato);}
